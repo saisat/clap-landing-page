@@ -172,6 +172,249 @@
 })();
 
 // ========================================
+// WAITLIST FORM VALIDATION
+// ========================================
+
+/**
+ * Handles waitlist form validation with real-time feedback
+ * Provides client-side validation for all form fields
+ */
+(function initFormValidation() {
+  const form = document.getElementById('waitlist-form');
+
+  if (!form) {
+    console.warn('Waitlist form not found');
+    return;
+  }
+
+  // Form field elements
+  const emailField = document.getElementById('email');
+  const nameField = document.getElementById('name');
+  const roleField = document.getElementById('role');
+  const experienceField = document.getElementById('experience');
+  const goalField = document.getElementById('goal');
+  const successMessage = document.getElementById('form-success');
+
+  // Error message elements
+  const emailError = document.getElementById('email-error');
+  const nameError = document.getElementById('name-error');
+  const roleError = document.getElementById('role-error');
+  const experienceError = document.getElementById('experience-error');
+  const goalError = document.getElementById('goal-error');
+
+  /**
+   * Validates email format using regex
+   */
+  function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Validates individual field and displays error message
+   */
+  function validateField(field, errorElement, validationRules) {
+    const value = field.value.trim();
+    let errorMessage = '';
+
+    // Check if field is required and empty
+    if (validationRules.required && !value) {
+      errorMessage = validationRules.requiredMessage || 'This field is required';
+    }
+    // Check minimum length
+    else if (validationRules.minLength && value.length < validationRules.minLength) {
+      errorMessage = validationRules.minLengthMessage || `Minimum ${validationRules.minLength} characters required`;
+    }
+    // Check email format
+    else if (validationRules.email && !validateEmail(value)) {
+      errorMessage = validationRules.emailMessage || 'Please enter a valid email address';
+    }
+
+    // Update field and error display
+    if (errorMessage) {
+      field.setAttribute('aria-invalid', 'true');
+      field.classList.add('form__input--error');
+      errorElement.textContent = errorMessage;
+      return false;
+    } else {
+      field.setAttribute('aria-invalid', 'false');
+      field.classList.remove('form__input--error');
+      errorElement.textContent = '';
+      return true;
+    }
+  }
+
+  /**
+   * Validation rules for each field
+   */
+  const fieldValidations = {
+    email: {
+      field: emailField,
+      error: emailError,
+      rules: {
+        required: true,
+        email: true,
+        requiredMessage: 'Email address is required',
+        emailMessage: 'Please enter a valid email address'
+      }
+    },
+    name: {
+      field: nameField,
+      error: nameError,
+      rules: {
+        required: true,
+        minLength: 2,
+        requiredMessage: 'Full name is required',
+        minLengthMessage: 'Name must be at least 2 characters'
+      }
+    },
+    role: {
+      field: roleField,
+      error: roleError,
+      rules: {
+        required: true,
+        requiredMessage: 'Current role is required'
+      }
+    },
+    experience: {
+      field: experienceField,
+      error: experienceError,
+      rules: {
+        required: true,
+        requiredMessage: 'Please select your years of experience'
+      }
+    },
+    goal: {
+      field: goalField,
+      error: goalError,
+      rules: {
+        required: true,
+        requiredMessage: 'Please select your primary goal'
+      }
+    }
+  };
+
+  /**
+   * Real-time validation on input/blur events
+   */
+  function setupRealTimeValidation() {
+    Object.values(fieldValidations).forEach(({ field, error, rules }) => {
+      // Validate on blur (when user leaves field)
+      field.addEventListener('blur', () => {
+        validateField(field, error, rules);
+      });
+
+      // Validate on input (as user types)
+      field.addEventListener('input', () => {
+        // Only validate if field has been touched (has error)
+        if (field.getAttribute('aria-invalid') === 'true') {
+          validateField(field, error, rules);
+        }
+      });
+    });
+  }
+
+  /**
+   * Validates entire form
+   */
+  function validateForm() {
+    let isValid = true;
+
+    Object.values(fieldValidations).forEach(({ field, error, rules }) => {
+      const fieldValid = validateField(field, error, rules);
+      if (!fieldValid) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  }
+
+  /**
+   * Handles form submission
+   */
+  function handleFormSubmit(e) {
+    e.preventDefault();
+
+    // Validate all fields
+    const isValid = validateForm();
+
+    if (!isValid) {
+      // Focus first invalid field
+      const firstInvalidField = form.querySelector('[aria-invalid="true"]');
+      if (firstInvalidField) {
+        firstInvalidField.focus();
+      }
+      return;
+    }
+
+    // Form is valid - show success message
+    showSuccessMessage();
+
+    // Log form data (for development/debugging)
+    const formData = {
+      email: emailField.value.trim(),
+      name: nameField.value.trim(),
+      role: roleField.value.trim(),
+      experience: experienceField.value,
+      goal: goalField.value
+    };
+
+    console.log('Form submitted successfully:', formData);
+
+    // TODO: Backend integration
+    // In production, send data to backend API
+    // Example: fetch('/api/waitlist', { method: 'POST', body: JSON.stringify(formData) })
+  }
+
+  /**
+   * Shows success message and hides form
+   */
+  function showSuccessMessage() {
+    // Hide form fields
+    form.querySelectorAll('.form__field').forEach(field => {
+      field.style.display = 'none';
+    });
+    form.querySelector('.form__submit').style.display = 'none';
+
+    // Show success message
+    successMessage.classList.add('visible');
+
+    // Scroll to success message
+    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Initialize real-time validation
+  setupRealTimeValidation();
+
+  // Handle form submission
+  form.addEventListener('submit', handleFormSubmit);
+
+  console.log('Form validation initialized');
+})();
+
+// ========================================
+// EXTERNAL LINK HANDLING
+// ========================================
+
+/**
+ * Handles external links to open in new tab
+ * Adds rel="noopener noreferrer" for security
+ */
+(function initExternalLinks() {
+  const externalLinks = document.querySelectorAll('a[target="_blank"]');
+
+  externalLinks.forEach(link => {
+    // Ensure security attributes are set
+    if (!link.getAttribute('rel')) {
+      link.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  console.log(`External link handling initialized for ${externalLinks.length} links`);
+})();
+
+// ========================================
 // KEYBOARD NAVIGATION ENHANCEMENTS
 // ========================================
 
